@@ -1,0 +1,115 @@
+{
+   "AWSTemplateFormatVersion": "2010-09-09",
+   "Description": "Create VPC with single public subnet",
+   "Resources": {
+      "VPC": {
+         "Type": "AWS::EC2::VPC",
+         "Properties": {
+            "CidrBlock": "10.0.0.0/16",
+            "EnableDnsHostnames": true
+         }
+      },
+      "PublicSubnet": {
+         "Type": "AWS::EC2::Subnet",
+         "Properties": {
+            "CidrBlock": "10.0.1.0/24",
+            "VpcId": { "Ref": "VPC" },
+            "MapPublicIpOnLaunch": true
+         }
+      },
+      "InternetGateway": {
+         "Type": "AWS::EC2::InternetGateway",
+         "Properties": {
+            "Tags": [
+               {
+                  "Key": "Name",
+                  "Value": "TestJenkins"
+               }
+            ]
+         }
+      },
+      "IGAttachment": {
+         "Type": "AWS::EC2::VPCGatewayAttachment",
+         "Properties": {
+            "InternetGatewayId": { "Ref": "InternetGateway" },
+            "VpcId": { "Ref": "VPC" }
+         }
+      },
+      "RouteTable": {
+         "Type": "AWS::EC2::RouteTable",
+         "Properties": {
+            "VpcId": { "Ref": "VPC" }
+         }
+      },
+      "Routes": {
+         "Type": "AWS::EC2::Route",
+         "Properties": {
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "RouteTableId": { "Ref": "RouteTable" },
+            "GatewayId": { "Ref": "InternetGateway" }
+         }
+      },
+      "SubnetRouteTableAssociation": {
+         "Type": "AWS::EC2::SubnetRouteTableAssociation",
+         "Properties": {
+            "RouteTableId": { "Ref": "RouteTable" },
+            "SubnetId": { "Ref": "PublicSubnet" }
+         }
+      },
+      "cicdDemoSG": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "Security Group for CI CD Demo",
+          "VpcId": {"Ref": "VPC"},
+          "SecurityGroupIngress": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 80,
+              "ToPort": 80,
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 8080,
+              "ToPort": 8080,
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 8081,
+              "ToPort": 8081,
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 22,
+              "ToPort": 22,
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 443,
+              "ToPort": 443,
+              "CidrIp": "0.0.0.0/0"
+            }
+          ]
+        }
+      }
+   },
+   "Outputs": {
+      "SubnetId": {
+         "Description": "ID of public subnet",
+         "Value": { "Ref": "PublicSubnet" },
+         "Export": {
+            "Name": "PublicSubnetID"
+         }
+      },
+      "SecurityGroupID":{
+        "Description": "ID of security group",
+        "Value": { "Ref": "cicdDemoSG" },
+        "Export": {
+           "Name": "SecurityGroup"
+         }
+      }
+   }
+}
